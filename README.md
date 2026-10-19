@@ -232,7 +232,7 @@ Discussion answers: see [`STUDENT-QUESTIONS.md`](STUDENT-QUESTIONS.md).
 ---
 
 ## Architecture
-```
+```mermaid
    ON-CHAIN (what the chain can see)     THE BRIDGE (what must be trusted)    OFF-CHAIN (what it cannot see)
   ------------------------------------------------------------------------------------------------------------
 
@@ -250,8 +250,9 @@ Discussion answers: see [`STUDENT-QUESTIONS.md`](STUDENT-QUESTIONS.md).
   ComplianceRegistry -> TBillToken <-----  (4) ADMISSION  ------------------>   broker-dealer does KYC
   whitelist checked on BOTH ends of         the gate is only as strong as       and keeps the register
   every mint, transfer and burn             whoever holds the key
+```
 
-
+```mermaid
   USER                         ON-CHAIN                                      OFF-CHAIN
    |                              |                                              |
    | 1. USDC (cash) ------------->| TBillVault.subscribe                         |
