@@ -232,7 +232,7 @@ Discussion answers: see [`STUDENT-QUESTIONS.md`](STUDENT-QUESTIONS.md).
 ---
 
 ## Architecture
-
+```
    ON-CHAIN (what the chain can see)     THE BRIDGE (what must be trusted)    OFF-CHAIN (what it cannot see)
   ------------------------------------------------------------------------------------------------------------
 
@@ -273,7 +273,7 @@ Discussion answers: see [`STUDENT-QUESTIONS.md`](STUDENT-QUESTIONS.md).
 
   Cash crosses the bridge twice (step 2 out, step 5 in).
   Shares never cross: they are minted at step 1 and burned at step 5, entirely on-chain.
-
+```
 ---
 
 ## Deployment (Sepolia)
