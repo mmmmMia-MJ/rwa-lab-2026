@@ -233,6 +233,7 @@ Discussion answers: see [`STUDENT-QUESTIONS.md`](STUDENT-QUESTIONS.md).
 
 ## Architecture
 
+```mermaid
 flowchart LR
     %% 定义颜色和样式
     classDef offchain fill:#f2ece4,stroke:#a44a3f,stroke-width:2px,color:#333
@@ -288,6 +289,7 @@ flowchart LR
     Vault -- "4. Settle Cash" --> Queue
     Queue -- "5. Claim Cash" --> User
     Queue -. "Burn Shares" .-> Token
+```
 
 ---
 
