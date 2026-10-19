@@ -233,47 +233,53 @@ Discussion answers: see [`STUDENT-QUESTIONS.md`](STUDENT-QUESTIONS.md).
 
 ## Architecture
 
-   ON-CHAIN (what the chain can see)     THE BRIDGE (what must be trusted)    OFF-CHAIN (what it cannot see)
-  ------------------------------------------------------------------------------------------------------------
-
-  TBillVault + MockTBillCustodian  <-----  (1) CUSTODY  ------------------>   SPV / custodian bank
-  invest() books a holding                  Law, not code. realHoldings()       holds the real T-Bills
-  realHoldings() = a number                 is a number someone typed in
-
-  MockPriceFeed (NAV, 8 decimals)  <-----  (2) ATTESTATION  --------------->   fund administrator
-  every share is priced from it             attest(): ONE number, gated by      strikes the NAV
-                                            REPORTER_ROLE, checked by nothing
-
-  RedemptionQueue                  <-----  (3) REDEMPTION  ----------------->   SPV sells T-Bills, wires cash
-  enqueue / settle (FIFO) / claim           T+1: you get a ticket, not cash     back a day later
-
-  ComplianceRegistry -> TBillToken <-----  (4) ADMISSION  ------------------>   broker-dealer does KYC
-  whitelist checked on BOTH ends of         the gate is only as strong as       and keeps the register
-  every mint, transfer and burn             whoever holds the key
-
-  USER                         ON-CHAIN                                      OFF-CHAIN
-   |                              |                                              |
-   | 1. USDC (cash) ------------->| TBillVault.subscribe                         |
-   |<---- tBILL shares (minted) --| shares priced at the attested NAV            |
-   |                              |                                              |
-   |                              | 2. invest(): cash CROSSES OUT -------------->| SPV buys T-Bills
-   |                              |    custodian.realHoldings goes up            |
-   |                              |                                              |
-   |                              |<-- 3. attest(NAV): a NUMBER crosses in ------| administrator strikes NAV
-   |                              |    value of every share moves, count doesn't |
-   |                              |                                              |
-   | 4. shares -----------------> | RedemptionQueue.enqueue (shares escrowed,    |
-   |                              |    price locked at today's NAV)              |
-   |                              |                                              | SPV sells T-Bills (T+1)
-   |                              |<-- 5. cash CROSSES BACK IN ------------------| vault.depositReserves(...)
-   |                              |    settle(): pay oldest ticket first,        |
-   |                              |    burn the escrowed shares                  |
-   |<---- 6. claim(): USDC -------|                                              |
-
-  Cash crosses the bridge twice (step 2 out, step 5 in).
-  Shares never cross: they are minted at step 1 and burned at step 5, entirely on-chain.
-
+                                   [ OFF-CHAIN ]
++---------------------------------------------------------------------------------+
+|                                                                                 |
+|   +-------------------+           PLANK 1: CUSTODY           +--------------+   |
+|   | MockTBillCustodian| <-----------------------------------> |     SPV      |   |
+|   | realHoldings()    |         (Law, not code)              | (Legal Owner)|   |
+|   +-------------------+                                       +--------------+   |
+|             ^                                                                   |
++-------------|-------------------------------------------------------------------+
+              | (NAV / Attestation)
+              |
++-------------|-------------------------------------------------------------------+
+|             |                         [ ON-CHAIN ]                              |
+|   +-------------------+           PLANK 2: ATTESTATION       +--------------+   |
+|   |   MockPriceFeed   | <-----------------------------------> |  TBillVault  |   |
+|   |       (NAV)       |           (One number re-prices)      |  (On-Ramp)   |   |
+|   +-------------------+                                       +--------------+   |
+|                                                                 |       ^        |
+|                     (4. Settle Cash)                            |       |        |
+|                                                                 v       | (1. Cash IN)
+|   +-------------------+           PLANK 3: REDEMPTION      +--------------+   |
+|   |  RedemptionQueue  | <-----------------------------------> |   MockUSDC   |   |
+|   | (T+1 Settlement)  |                                       |   (Cash)     |   |
+|   +-------------------+                                       +--------------+   |
+|        |       ^                                                                 |
+|        |       |                                                                 |
+|  (5. Claim) (3. Shares IN)                                     PLANK 4: ADMISSION
+|        |       |                                               +--------------+   |
+|        v       |                                               |  Compliance  |   |
+|      +-----------+                                             |  Registry    |   |
+|      |           |                                             +--------------+   |
+|      |   User    |                                                    |           |
+|      |           | <--------------------------------------------------+           |
+|      +-----------+        (Whitelist Check: who may hold shares at all)         |
+|                                                                                 |
++---------------------------------------------------------------------------------+
 
 ---
 
 ## Deployment (Sepolia)
+
+| Contract | Address | Etherscan |
+|---|---|---|
+| MockUSDC | `0xbd2F7a12c91aEfDba8f5e8Fcb48d29DB0D76fe82` | [Link](https://sepolia.etherscan.io/address/0xbd2F7a12c91aEfDba8f5e8Fcb48d29DB0D76fe82) |
+| ComplianceRegistry | `0xf7D43c8a37e961D78C5BA1464e2f7d5368931e7E` | [Link](https://sepolia.etherscan.io/address/0xf7D43c8a37e961D78C5BA1464e2f7d5368931e7E) |
+| MockPriceFeed | `0x3f6d44CD89eDA63bC7cb80773C9583eeE4Dece55` | [Link](https://sepolia.etherscan.io/address/0x3f6d44CD89eDA63bC7cb80773C9583eeE4Dece55) |
+| TBillToken | `0xEdE2fFa452d9C1657961342955EC196FeFf0391d` | [Link](https://sepolia.etherscan.io/address/0xEdE2fFa452d9C1657961342955EC196FeFf0391d) |
+| MockTBillCustodian | `0xd2aE1e3db1645E22039A6e6060365794CE3186ee` | [Link](https://sepolia.etherscan.io/address/0xd2aE1e3db1645E22039A6e6060365794CE3186ee) |
+| TBillVault | `0x1A62D30A988C339003EAa5f3AF4eCebFaea639AD` | [Link](https://sepolia.etherscan.io/address/0x1A62D30A988C339003EAa5f3AF4eCebFaea639AD) |
+| RedemptionQueue | `0x51f0a1F5B21ef0748F4a1004f4188DDF820acb58` | [Link](https://sepolia.etherscan.io/address/0x51f0a1F5B21ef0748F4a1004f4188DDF820acb58) |
