@@ -222,3 +222,58 @@ What the zip must contain:
 
 The discussion prompts live in `STUDENT-QUESTIONS.md` — one per plank, no standard answers, and the
 real point of this lab.
+
+
+
+# Assignment Three -- Answer
+
+Discussion answers: see [`STUDENT-QUESTIONS.md`](STUDENT-QUESTIONS.md).
+
+---
+
+## Architecture
+
+   ON-CHAIN (what the chain can see)     THE BRIDGE (what must be trusted)    OFF-CHAIN (what it cannot see)
+  ------------------------------------------------------------------------------------------------------------
+
+  TBillVault + MockTBillCustodian  <-----  (1) CUSTODY  ------------------>   SPV / custodian bank
+  invest() books a holding                  Law, not code. realHoldings()       holds the real T-Bills
+  realHoldings() = a number                 is a number someone typed in
+
+  MockPriceFeed (NAV, 8 decimals)  <-----  (2) ATTESTATION  --------------->   fund administrator
+  every share is priced from it             attest(): ONE number, gated by      strikes the NAV
+                                            REPORTER_ROLE, checked by nothing
+
+  RedemptionQueue                  <-----  (3) REDEMPTION  ----------------->   SPV sells T-Bills, wires cash
+  enqueue / settle (FIFO) / claim           T+1: you get a ticket, not cash     back a day later
+
+  ComplianceRegistry -> TBillToken <-----  (4) ADMISSION  ------------------>   broker-dealer does KYC
+  whitelist checked on BOTH ends of         the gate is only as strong as       and keeps the register
+  every mint, transfer and burn             whoever holds the key
+
+
+  USER                         ON-CHAIN                                      OFF-CHAIN
+   |                              |                                              |
+   | 1. USDC (cash) ------------->| TBillVault.subscribe                         |
+   |<---- tBILL shares (minted) --| shares priced at the attested NAV            |
+   |                              |                                              |
+   |                              | 2. invest(): cash CROSSES OUT -------------->| SPV buys T-Bills
+   |                              |    custodian.realHoldings goes up            |
+   |                              |                                              |
+   |                              |<-- 3. attest(NAV): a NUMBER crosses in ------| administrator strikes NAV
+   |                              |    value of every share moves, count doesn't |
+   |                              |                                              |
+   | 4. shares -----------------> | RedemptionQueue.enqueue (shares escrowed,    |
+   |                              |    price locked at today's NAV)              |
+   |                              |                                              | SPV sells T-Bills (T+1)
+   |                              |<-- 5. cash CROSSES BACK IN ------------------| vault.depositReserves(...)
+   |                              |    settle(): pay oldest ticket first,        |
+   |                              |    burn the escrowed shares                  |
+   |<---- 6. claim(): USDC -------|                                              |
+
+  Cash crosses the bridge twice (step 2 out, step 5 in).
+  Shares never cross: they are minted at step 1 and burned at step 5, entirely on-chain.
+
+---
+
+## Deployment (Sepolia)

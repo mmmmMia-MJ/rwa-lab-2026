@@ -95,7 +95,7 @@ contract RedemptionQueue is AccessControl {
     ///         8-decimal NAV
     /// @dev The product carries 18 + 8 = 26 decimals and you want 6 — divide by 10 to the what?
     function assetsAtNav(uint256 shares, uint256 nav) public pure returns (uint256) {
-        revert("TODO Ex5.1: assetsAtNav");
+        return shares * nav / DECIMALS_SCALE;
     }
 
     // ==================================================================
@@ -112,7 +112,20 @@ contract RedemptionQueue is AccessControl {
     ///      Locking the rate now is the point: the payout must not drift with the NAV while
     ///      the ticket waits in the queue.
     function enqueue(uint256 shares) external returns (uint256 id) {
-        revert("TODO Ex5.2: enqueue");
+        if (shares == 0) revert ZeroAmount();
+
+        uint256 assetsLocked = assetsAtNav(shares, vault.navPerShare());
+
+        id = requests.length;
+        requests.push(
+            Request({owner: msg.sender, shares: shares, assetsLocked: assetsLocked, settled: false})
+        );
+        pendingShares += shares;
+        pendingAssets += assetsLocked;
+
+        IERC20(address(tBill)).safeTransferFrom(msg.sender, address(this), shares);
+
+        emit RedeemRequested(id, msg.sender, shares, assetsLocked);
     }
 
     // ==================================================================
@@ -132,7 +145,32 @@ contract RedemptionQueue is AccessControl {
     ///        - credit the owner's claimable balance and totalClaimable
     ///      Return how much you actually paid out.
     function settle(uint256 assets) external onlyRole(SETTLER_ROLE) returns (uint256 filled) {
-        revert("TODO Ex5.3: settle");
+        uint256 remaining = assets;
+
+        while (head < requests.length) {
+            Request storage r = requests[head];
+
+            if (r.assetsLocked > remaining) break;
+
+            uint256 id = head;
+            uint256 payout = r.assetsLocked;
+            uint256 escrowed = r.shares;
+            address owner = r.owner;
+
+            r.settled = true;
+            head = id + 1;
+            remaining -= payout;
+            filled += payout;
+            pendingShares -= escrowed;
+            pendingAssets -= payout;
+            claimable[owner] += payout;
+            totalClaimable += payout;
+
+            if (payout > 0) vault.releaseReserves(address(this), payout);
+            tBill.burn(address(this), escrowed);
+
+            emit Settled(id, owner, payout);
+        }
     }
 
     // ==================================================================
@@ -142,6 +180,13 @@ contract RedemptionQueue is AccessControl {
     /// @notice Withdraw the cash credited to you by settled tickets
     /// @dev Checks-effects-interactions: zero the balance before the transfer.
     function claim() external returns (uint256 assets) {
-        revert("TODO Ex5.4: claim");
+        assets = claimable[msg.sender];
+        if (assets == 0) revert NothingToClaim();
+
+        claimable[msg.sender] = 0;
+        totalClaimable -= assets;
+
+        usdc.safeTransfer(msg.sender, assets);
+        emit Claimed(msg.sender, assets);
     }
 }
