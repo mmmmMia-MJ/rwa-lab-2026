@@ -235,7 +235,7 @@ Discussion answers: see [`STUDENT-QUESTIONS.md`](STUDENT-QUESTIONS.md).
 
 ```mermaid
 flowchart LR
-    %% 定义颜色和样式
+    
     classDef offchain fill:#f2ece4,stroke:#a44a3f,stroke-width:2px,color:#333
     classDef onchain fill:#e8f4f8,stroke:#0b5563,stroke-width:2px,color:#333
     classDef plank fill:#ffffff,stroke:#0b5563,stroke-width:2px,stroke-dasharray: 5 5,color:#0b5563
@@ -260,24 +260,24 @@ flowchart LR
 
     User(("User\n(Investor)")):::offchain
 
-    %% 四块桥板 (The Four Planks)
+    
     P1>PLANK 1: CUSTODY]:::plank
     P2>PLANK 2: ATTESTATION]:::plank
     P3>PLANK 3: REDEMPTION]:::plank
     P4>PLANK 4: ADMISSION]:::plank
 
-    %% 桥板连线
+     
     P1 -.-> Custodian
     P2 -.-> Feed
     Feed -- "attest(NAV)" --> Vault
     P3 -.-> Queue
     P4 -.-> Compliance
 
-    %% 准入检查
+    
     Compliance -. "gates" .-> User
     Compliance -. "whitelisted" .-> Queue
 
-    %% 现金与股份的流动
+    
     User -- "1. Pay USDC" --> USDC
     USDC -- "CASH IN" --> Vault
     Vault -- "2. Mint" --> Token
